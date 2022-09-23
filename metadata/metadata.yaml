@@ -1,0 +1,321 @@
+- name: "Zero"
+  brief: "Constant zero"
+  metadata:
+    - name: "Zero 2 bytes"
+      p4: ZERO_2
+      instruction: 0x00
+      length: 2
+      gress: ingress
+      brief: "Insert two zero bytes"
+    - name: "Zero 4 bytes"
+      p4: ZERO_4
+      instruction: 0x40
+      length: 4
+      gress: ingress
+      brief: "Insert four zero bytes"
+    - name: "Zero 6 bytes"
+      p4: ZERO_6
+      instruction: 0x80
+      length: 6
+      gress: ingress
+      brief: "Insert six zero bytes"
+    - name: "Zero 8 bytes"
+      p4: ZERO_8
+      instruction: 0xC0
+      length: 8
+      gress: ingress
+      brief: "Insert eight zero bytes"
+- name: "Static SCION AS-level"
+  brief: "Static SCION-specific metadata on the AS-level"
+  metadata:
+    - name: "ISD"
+      p4: ISD
+      instruction: 0x01
+      length: 2
+      gress: ingress
+      brief: "SCION ISD identifier"
+    - name: "ASN"
+      p4: ASN
+      instruction: 0x81
+      length: 6
+      gress: ingress
+      brief: "SCION AS number"
+    - name: "BR link type"
+      p4: BR_LINK_TYPE
+      instruction: 0x02
+      length: 2
+      gress: ingress
+      brief: "Ingress+egress link type (L2, BGP, etc.)"
+- name: "Static device-level"
+  brief: "Static device information"
+  metadata:
+    - name: "Device type/role"
+      p4: DEVICE_TYPE_ROLE
+      instruction: 0x03
+      length: 2
+      gress: ingress
+      brief: "First byte is type, second byte is role"
+    - name: "Device vendor"
+      p4: DEVICE_VENDOR
+      instruction: 0x41
+      length: 4
+      gress: ingress
+      brief: "MAC address vendor identity"
+    - name: "Device model"
+      p4: DEVICE_MODEL
+      instruction: 0x42
+      length: 4
+      gress: ingress
+      brief: "Model number"
+    - name: "Software version"
+      p4: SOFTWARE_VERSION
+      instruction: 0x43
+      length: 4
+      gress: ingress
+      brief: "Current software version"
+    - name: "Node IPv4 address"
+      p4: NODE_IPV4_ADDR
+      instruction: 0x44
+      length: 4
+      gress: ingress
+      brief: "Internal IPv4 address"
+    - name: "Node IPv6 address (hi)"
+      p4: NODE_IPV6_ADDR_H
+      instruction: 0xC1
+      length: 8
+      gress: ingress
+      brief: "Internal IPv6 address (high order bytes)"
+    - name: "Node IPv6 address (lo)"
+      p4: NODE_IPV6_ADDR_L
+      instruction: 0xC2
+      length: 8
+      gress: ingress
+      brief: "Internal IPv6 address (low order bytes)"
+    - name: "Ingress IF speed"
+      p4: INGRESS_IF_SPEED
+      instruction: 0x45
+      length: 4
+      unit: "Mbit/s"
+      gress: ingress
+      brief: "Ingress interface HW speed"
+    - name: "Egress IF speed"
+      p4: EGRESS_IF_SPEED
+      instruction: 0x46
+      length: 4
+      unit: "Mbit/s"
+      gress: ingress
+      brief: "Egress interface HW speed"
+    - name: "GPS latitude"
+      p4: GPS_LAT
+      instruction: 0xC3
+      length: 8
+      unit: "degree"
+      gress: ingress
+      brief: "IEEE 754 double-precision"
+    - name: "GPS longitude"
+      p4: GPS_LONG
+      instruction: 0xC4
+      length: 8
+      unit: "degree"
+      gress: ingress
+      brief: "IEEE 754 double-precision"
+- name: "Device hardware status"
+  metadata:
+    - name: "Uptime"
+      p4: UPTIME
+      instruction: 0x47
+      length: 4
+      unit: "second"
+      gress: ingress
+      brief: "Device uptime in seconds"
+    - name: "CPU/Memory usage"
+      p4: CPU_MEM_USAGE
+      instruction: 0x04
+      length: 2
+      gress: ingress
+      details: |
+        Normalized CPU and memory usage
+        - CPU Usage = first byte / 255
+        - Memory usage = second byte / 255
+    - name: "CPU temperature"
+      p4: CPU_TEMP
+      instruction: 0x05
+      length:  2
+      unit: "Kelvin"
+      gress: ingress
+    - name: "ASIC temperature"
+      p4: ASIC_TEMP
+      instruction: 0x06
+      length: 2
+      unit: "Kelvin"
+      gress: ingress
+      brief: "Temperature of the main switch ASIC"
+    - name: "Fan speed"
+      p4: FAN_SPEED
+      instruction: 0x07
+      length: 2
+      unit: "RPM"
+      gress: ingress
+    - name: "Total power draw"
+      p4: TOTAL_POWER
+      instruction: 0x08
+      length: 2
+      unit: "Watt"
+      gress: ingress
+      brief: "Total power draw fo the device"
+    - name: "Energy mix"
+      p4: ENERGY_MIX
+      instruction: 0x09
+      length: 2
+      gress: ingress
+      details: |
+        Normalized mix of renewable, nuclear, and fossil energy sources
+        - Renewable R = first byte / 255
+        - Nuclear   N = second byte / 255
+        - Fossil    F = 1 - (R + N)
+    - name: "Forwarding energy"
+      p4: FWD_ENERGY
+      instruction: 0x48
+      length: 4
+      unit: "nJ"
+      gress: egress
+      brief: "Energy for forwarding the packet"
+    - name: "CO2 per packet"
+      p4: CO2_EMISSION
+      instruction: 0x49
+      length: 4
+      unit: "pg"
+      gress: egress
+- name: "Ingress/Egress port statistics"
+  metadata:
+    - name: "Ingress timestamp"
+      p4: INGRESS_TSTAMP
+      instruction: 0x82
+      length: 6
+      unit: "ns"
+      gress: ingress
+    - name: "Egress timestamp"
+      p4: EGRESS_TSTAMP
+      instruction: 0x83
+      length: 6
+      unit: "ns"
+      gress: egress
+    - name: "Ingress link RX util"
+      p4: INGRESS_LINK_RX
+      instruction: 0x4A
+      length: 4
+      unit: "kbit/s"
+      gress: ingress
+    - name: "Egress link TX util"
+      p4: EGRESS_LINK_TX
+      instruction: 0x4B
+      length: 4
+      unit: "kbit/s"
+      gress: egress
+    - name: "Ingress SCION-IF pkt count"
+      p4: IG_SCIF_PKT_CNT
+      instruction: 0x84
+      length: 6
+      unit: "packets"
+      gress: ingress
+    - name: "Egress SCION-IF pkt count"
+      p4: EG_SCIF_PKT_CNT
+      instruction: 0x85
+      length: 6
+      unit: "packets"
+      gress: egress
+    - name: "Ingress SCION-IF pkt drop count"
+      p4: IG_SCIF_PKT_DROP
+      instruction: 0x86
+      length: 6
+      unit: "packets"
+      gress: ingress
+    - name: "Egress SCION-IF pkt drop count"
+      p4: EG_SCIF_PKT_DROP
+      instruction: 0x87
+      length: 6
+      unit: "packets"
+      gress: egress
+    - name: "Ingress SCION-IF byte count"
+      p4: IG_SCIF_BYTES
+      instruction: 0x88
+      length: 6
+      unit: "byte"
+      gress: ingress
+    - name: "Egress SCION-IF byte count"
+      p4: EG_SCIF_BYTES
+      instruction: 0x89
+      length: 6
+      unit: "byte"
+      gress: egress
+    - name: "Ingress total pkt count"
+      p4: IG_PKT_CNT
+      instruction: 0x8A
+      length: 6
+      unit: "packets"
+      gress: ingress
+    - name: "Egress total pkt count"
+      p4: EG_PKT_CNT
+      instruction: 0x8B
+      length: 6
+      gress: egress
+    - name: "Ingress total pkt drop count"
+      p4: IG_PKT_DROP
+      instruction: 0x8C
+      length: 6
+      unit: "packets"
+      gress: ingress
+    - name: "Egress total pkt drop count"
+      p4: EG_PKT_DROP
+      instruction: 0x8D
+      length: 6
+      unit: "packets"
+      gress: egress
+    - name: "Ingress total byte count"
+      p4: IG_BYTES
+      instruction: 0x8E
+      length: 6
+      unit: "byte"
+      gress: ingress
+    - name: "Egress total byte count"
+      p4: EG_BYTES
+      instruction: 0x8F
+      length: 6
+      unit: "byte"
+      gress: egress
+- name: "Queue and buffer utilization"
+  metadata:
+    - name: "Queue ID"
+      p4: QUEUE_ID
+      instruction: 0x4C
+      length: 4
+      gress: egress
+    - name: "Instantaneous queue length"
+      p4: INST_QUEUE_LEN
+      instruction: 0x4D
+      length: 4
+      unit: "packets"
+      gress: egress
+    - name: "Average queue length"
+      p4: AVG_QUEUE_LEN
+      instruction: 0x4E
+      length: 4
+      unit: "packets"
+      gress: egress
+    - name: "Buffer ID"
+      p4: BUFFER_ID
+      instruction: 0x4F
+      length: 4
+      gress: egress
+    - name: "Instantaneous buffer occupancy"
+      p4: INST_BUFFER_OCC
+      instruction: 0x50
+      length: 4
+      unit: "packets"
+      gress: egress
+    - name: "Average buffer occupancy"
+      p4: AVG_BUFFER_OCC
+      instruction: 0x51
+      length: 4
+      unit: "packets"
+      gress: egress
