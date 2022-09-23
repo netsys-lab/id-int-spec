@@ -105,10 +105,6 @@ Aggregation function to use for variable length metadata.
 ##### **Inst** (Instruction 1-4)
 Variable length metadata requests.
 
-##### **Inst1** and **Inst2** (Instruction 1 and Instruction 2)
-Each bit in the instruction bitmaps corresponds to a metadatum in the telemetry stack entries. The
-precise meaning of each bits depends on the value in the corresponding selector field.
-
 ##### **Source Timestamp**
 48-bit timestamp in nanoseconds for replay suppression. If an INT source does not support nanosecond
 precision timestamps, it still has to make sure packets using the same MAC keys have different
