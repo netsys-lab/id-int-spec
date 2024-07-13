@@ -28,22 +28,22 @@ Node IPv6 address (hi)          | 0xC1 |      8 |         | Internal IPv6 addres
 Node IPv6 address (lo)          | 0xC2 |      8 |         | Internal IPv6 address (low order bytes)
 Ingress IF speed                | 0x45 |      4 |  Mbit/s | Ingress interface HW speed
 Egress IF speed                 | 0x46 |      4 |  Mbit/s | Egress interface HW speed
-GPS latitude                    | 0xC3 |      8 |  degree | IEEE 754 double-precision
-GPS longitude                   | 0xC4 |      8 |  degree | IEEE 754 double-precision
+GPS latitude                    | 0x47 |      4 |  degree | IEEE 754 single-precision
+GPS longitude                   | 0x48 |      4 |  degree | IEEE 754 single-precision
 
 ### Device hardware status
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
-Uptime                          | 0x47 |      4 |  second | Device uptime in seconds
+Uptime                          | 0x49 |      4 |  second | Device uptime in seconds
 CPU/Memory usage                | 0x04 |      2 |         |
 CPU temperature                 | 0x05 |      2 |  Kelvin |
 ASIC temperature                | 0x06 |      2 |  Kelvin | Temperature of the main switch ASIC
 Fan speed                       | 0x07 |      2 |     RPM |
-Total power draw                | 0x08 |      2 |    Watt | Total power draw fo the device
+Total power draw                | 0x08 |      2 |    Watt | Total instantaneous power draw of the device
 Energy mix                      | 0x09 |      2 |         |
-Forwarding energy               | 0x48 |      4 |      nJ | Energy for forwarding the packet
-CO2 per packet                  | 0x49 |      4 |      pg |
+Forwarding energy               | 0x4A |      4 |      nJ | Energy for forwarding the packet
+CO2 per packet                  | 0x4B |      4 |      pg |
 
 #### Details
 - CPU/Memory usage
@@ -66,8 +66,8 @@ Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
 Ingress timestamp               | 0x82 |      6 |      ns |
 Egress timestamp                | 0x83 |      6 |      ns |
-Ingress link RX util            | 0x4A |      4 |  kbit/s |
-Egress link TX util             | 0x4B |      4 |  kbit/s |
+Ingress link RX util            | 0x4C |      4 |  kbit/s |
+Egress link TX util             | 0x4D |      4 |  kbit/s |
 Ingress SCION-IF pkt count      | 0x84 |      6 | packets |
 Egress SCION-IF pkt count       | 0x85 |      6 | packets |
 Ingress SCION-IF pkt drop count | 0x86 |      6 | packets |
@@ -85,9 +85,15 @@ Egress total byte count         | 0x8F |      6 |    byte |
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
-Queue ID                        | 0x4C |      4 |         |
-Instantaneous queue length      | 0x4D |      4 | packets |
-Average queue length            | 0x4E |      4 | packets |
-Buffer ID                       | 0x4F |      4 |         |
-Instantaneous buffer occupancy  | 0x50 |      4 | packets |
-Average buffer occupancy        | 0x51 |      4 | packets |
+Queue ID                        | 0x4E |      4 |         |
+Instantaneous queue length      | 0x4F |      4 | packets |
+Average queue length            | 0x50 |      4 | packets |
+Buffer ID                       | 0x51 |      4 |         |
+Instantaneous buffer occupancy  | 0x52 |      4 | packets |
+Average buffer occupancy        | 0x53 |      4 | packets |
+
+### No operation
+
+Metadatum                       | Inst | Length |   Unit  | Description
+--------------------------------|-----:|-------:|--------:|-----------------------------------------
+NOP                             | 0xFF |      0 |         |

@@ -1,31 +1,54 @@
-SCION Inter-Domain In-band Network Telemetry Extension
-======================================================
+ID-INT: Inter-Domain In-band Network Telemetry
+==============================================
 
-The goal of the SCION INT extension is to enable in-band telemetry in an inter-domain context.
+ID-INT (inter-domain in-band network telemetry) is an extension to the SCION
+Internet architecture that allows routers of different ASes to share telemetry
+information with other outers and end host via INT headers.
 
-Possible applications for INT in SCION are:
-- Monitoring and debugging of connection issues
-- Provide information for paths selection
-- Verification of SLAs
+ID-INT has many applications, including:
+- Providing richer network debugging information than possible with ping and
+  traceroute
+- Intra-AS path tracing
+- Intelligent path selection
+- Telemetry-augmented congestion control
+- SLA verification
+- Carbon aware routing
 
-Existing in-band telemetry specifications (such as one from the P4.org Applications Working Group)
-do not meet our needs:
-- No authentication of telemetry data
-- No way to relate telemetry data to SCION hop fields
-- Need a way to requests AS-level, BR-level, or internal router telemetry
-- Domain-specific metadata does not make sense in an inter-domain setting
+ID-INT Features:
+- Fully implementable in the data plane on the router's fast path
+- Universal set of telemetry instructions useful to SCION
+- Per-AS telemetry aggregation to reduce header size and protect confidential
+  information
+- Telemetry is authenticated using MACs
+- Telemetry can optionally be encrypted
+- Uses DRKey to efficiently derive cryptographic keys in routers
+- Support for source authentication
 
+ID-INT Data Plane Specification
+-------------------------------
 
-ID-INT Main Header
-------------------
+The ID-INT header is inserted between the SCION hop-by-hop and end-to-end option
+headers. If no other options are present, ID-INT immediately follows the SCION
+header (ane the path contained within the SCION header). ID-INT is not a
+hop-by-hop extension header itself to simplify parsing in hardware routers and
+to allow for a larger maximum size. ID-INT is identifyied by a value of 253 in
+the next header field of the SCION or hop-by-hop extension header. 253 is
+reserved for experiments by the SCION specification and will be replaced with a
+standardized value in the future.
+
+In the following, we describe the layout and semantics of the ID-INT header and
+the telemetry stack entries it contains.
+
+### ID-INT Main Header
+The ID-INT main header not including the telemetry stack is 20 to 40 bytes long.
 
 ```
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| Ver |I|D|E|X|F|Mod|Vrf|VT |VL |    Length     |    NextHdr    |
+| Ver |I|D|E|X|R|Mod|Vrf|VT |VL |    Length     |    NextHdr    |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| DelayHops |Res| RemHopCnt |Res| InstF | AF1 | AF2 | AF3 | AF4 |
+| DelayHops |Res|  MaxStackLen  | InstF | AF1 | AF2 | AF3 | AF4 |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |     Inst1     |     Inst2     |     Inst3     |     Inst4     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -35,7 +58,7 @@ ID-INT Main Header
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |         VerifierISD           |                               | \
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               | |
-|                          VerifierAS                           | | Only if Vrf == 0
+|                          VerifierAS                           | | If Vrf == 0
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
 |                       VerifierHostAddr (4-16 bytes)           | /
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -49,18 +72,20 @@ ID-INT Main Header
 Version of the telemetry header. Currently 0.
 
 ##### **Flags**
-- `I` INT between infrastructure nodes (e.g., border routers) instead of end host. The address of
-      the verifier is given explicitly in the telemetry header. If set, the border router of the
-      destination AS may remove the INT header before the packet reaches the destination host,
-      otherwise the INT header should not be removed.
-- `D` Discard Packet: Discard the packet at the INT sink. This is useful for probe packets that do
-      not carry application data.
+- `I` INT between infrastructure nodes (e.g., border routers) instead of end
+      host. If set, the border router of the destination AS may remove the INT
+      header before the packet reaches the destination host, otherwise the INT
+      header should not be removed.
+- `D` Discard Packet: Discard the packet at the INT sink. This is useful for
+      probe packets that do not carry application data.
 - `E` Encrypt the telemetry.
-- `X` Max Hop Count exceeded: Some metadata was omitted, because `RemHopCnt` has reached zero.
-- `F` Some metadata was omitted, because the stack is full.
+- `X` Max header size exceeded: Some metadata was omitted, because `Length`
+      would have exceeded `MaxStackLen`.
+- `R` Reserved. Must be zero.
 
 ##### **Mod** (Aggregation Mode)
-- `0` Unlimited stack entries per AS. All border routers and internal routers report telemetry.
+- `0` Unlimited stack entries per AS. All border routers and internal routers
+      report telemetry.
 - `1` At most one stack entry per AS.
 - `2` Telemetry stack entries from ingress and egress BR.
 - `3` Stack entries from ingress/egress BR and one internal router.
@@ -72,30 +97,34 @@ Version of the telemetry header. Currently 0.
 - `3` Reserved
 
 ##### **VT**
-Type of the host address in `VerifierHostAddr` with the same encoding as the `DT`/`ST` fields in the
-SCION address header. Must be zero if `V` is not set.
+Type of the host address in `VerifierHostAddr` with the same encoding as the
+`DT`/`ST` fields in the SCION address header. Must be zero if `V` is not set.
 
 ##### **VL**
-Length of the host address in `VerifierHostAddr` with the same encoding as the `DT`/`ST` fields in
-the SCION address header. Must be zero if `V` is not set.
+Length of the host address in `VerifierHostAddr` with the same encoding as the
+`DT`/`ST` fields in the SCION address header. Must be zero if `V` is not set.
 
 ##### **Length**
 Length of the telemetry stack in multiples of 4 bytes.
 
 ##### **NextHdr**
-Indicates the next header following ID-INT. Equivalent to the NextHdr field in SCION.
+Indicates the next header following ID-INT. Equivalent to the NextHdr field in
+SCION.
 
 ##### **DelayHops**
 The number of AS-level hops to skip before the first telemetry data is recorded.
 
-##### **RemHopCnt** (Remaining Hop Count)
-The maximum number of AS-level hops that are allowed to push telemetry to the stack.
+##### **MaxStackLen**
+Maximum length of the telemetry stack in multiples of 4 bytes. If pushing
+another entry would increase the stack size beyond this value, the entry is not
+pushed and the `X` flag is set.
 
 #### **InstF** (Instruction Flags)
-Instruction flags for fixed-length metadata.
+Instruction flags requesting a subset of the four default metadata.
 
 #### **AF** (Aggregation Function 1-4)
-Aggregation function to use for variable length metadata.
+Aggregation function to use for each of the four metadata slots corresponding to
+instruction byte `Inst1` to `Inst4`.
 - `000b` First (never overwrite)
 - `001b` Last (always overwrite)
 - `010b` Minimum
@@ -103,28 +132,37 @@ Aggregation function to use for variable length metadata.
 - `100b` Sum
 
 ##### **Inst** (Instruction 1-4)
-Variable length metadata requests.
+Metadata request instructions for slot 1 to 4.
 
 ##### **Source Timestamp**
-48-bit timestamp in nanoseconds for replay suppression. If an INT source does not support nanosecond
-precision timestamps, it still has to make sure packets using the same MAC keys have different
-timestamps, for example by including a sequence number in the least significant bits.
+48-bit timestamp in nanoseconds for replay suppression. If an INT source does
+not support nanosecond precision timestamps, it still has to make sure packets
+using the same MAC keys have different timestamps, for example by including a
+sequence number in the least significant bits.
+
+The keys used to authenticate and encrypt telemetry stack entries must be valid
+at the point in time identified by the source timestamp.
 
 The timestamp rolls around every ~3.26 days.
 
 ##### **Source Port**
-Egress port of the INT source. The same source timestamp and egress port should not be reused by the
-same INT source until the verification keys have changed.
+Egress port of the INT source. The same source timestamp and egress port should
+not be reused by the same INT source until the verification keys have changed.
 
 ##### **VerifierID**, **VerifierAS**, **VerifierHostAddr**
 SCION address of the verifier if `Vrf == 0`, otherwise omitted.
 
+##### Telemetry Stack
+The length of the telemetry stack is always a multiple of 4 bytes and all
+entries are 4-byte aligned. The stack is extended by inserting new stack entries
+at the top causing the entire packet to grow. At any point, the stack must
+contain at least one entry, called the source entry, which is added by the node
+inserting ID-INT into the header stack.
 
-ID-INT Metadata Header
-----------------------
-Entries in the telemetry stack have a minimum length of 8 bytes and must be padded to be a multiple
-of 4 bytes in length. The metadata stack must contain at least the source metadata
-(with flags S set to 1).
+#### Telemetry Stack Entries
+Entries in the telemetry stack have a minimum length of 8 bytes and must be
+padded to be a multiple of 4 bytes in length. The metadata stack must contain at
+least the source metadata (with flag `S` set to 1).
 
 ```
  0                   1                   2                   3
@@ -148,48 +186,62 @@ of 4 bytes in length. The metadata stack must contain at least the source metada
 - `S` (Source)    Set for source metadata.
 - `I` (Ingress)   Set if this entry corresponds to an ingress BR.
 - `E` (Egress)    Set if this entry corresponds to an egress BR.
-- `A` (Aggregate) Set if this entry contains aggregated metadata from multiple routers.
-- `C` (Encrypted) Set if the stack entry is encrypted. ALso implies the presence of the nonce field.
+- `A` (Aggregate) Set if this entry contains aggregated metadata from multiple
+                  routers.
+- `C` (Encrypted) Set if the stack entry is encrypted. If set the nonce field
+                  must be present.
 
 ##### **Hop**
-Index of the hop field this stack entry corresponds to.
+Index of the hop field this stack entry corresponds to. If the entry corresponds
+to multiple hop fields, the index of the first hop field the entry relates to.
 
 ##### **Mask**
-Indicates which of the fixed-length metadata that was requested in the main header is actually
-present.
+Metadata presence flags, indication which of the default metadata are present.
+- Bit 0: Node ID (4 bytes)
+- Bit 1: Node count (2 bytes)
+- Bit 2: Ingress device-level interface identifier (2 bytes)
+- Bit 4: Egress device-level interface identifier (2 bytes)
 
 ##### **ML** (Metadata Length 1-4)
-Length of variable-length metadata slot 1 to 4. A value of zero indicates the metadata is not
-present.
+Length of metadata corresponding to instruction slot 1 to 4. A value of zero
+indicates the metadata is not present. Encoding:
 - `0xxb` = 0 bytes
 - `100b` = 2 bytes
 - `101b` = 4 bytes
 - `110b` = 6 bytes
 - `111b` = 8 bytes
 
+#### **Nonce**
+12-byte random nonce for decrypting the metadata. Only present if `C` flag is
+set. With a 12-byte nonce, the probability of a collision in 2^32 messages is
+approximately 1.16e-10, for 2^48 the probability is ~0.4.
+
 ##### **Metadata**
-Concatenation of the metadata fields without any special alignment.
+Concatenation of the metadata fields without any padding or alignment.
 
 ##### **MAC**
 Message Authentication Code for checking telemetry authenticity.
 
+### Message Authentication Codes
+MACs are computed using the AES-CMAC algorithm with 128-bit keys. Stack entries
+are chained by including the MAC of the previous entry in the next one. The
+source entry is computed in a special way and includes fields from the main
+header.
 
-MAC Computation
----------------
-MAC are computed using AES-CMAC with 128 bit keys.
+The keys for MAC computation are derived between router and verifier using
+DRKey. As a special case, if the INT source and the verifier are the same (i.e.,
+the verifier is set to `Source` in the main header), the source can pick an
+arbitrary secret key to MAC the source metadata.
 
-### INT Source
-Key: Symmetric key shared between INT source and verifier.
-If the source and the verifier are identical, the source can just pick an arbitrary key.
-
-Input block:
+#### Source MAC Calculation
+The source MAC is calculated over:
 ```
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 | Ver |I|D|E|0|0|Mod|Vrf|VT |VL |       0       |       0       |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|     0     |     0     |   0   | InstF | AF1 | AF2 | AF3 | AF4 |
+|       0       |  MaxStackLen  | InstF | AF1 | AF2 | AF3 | AF4 |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |     Inst1     |     Inst2     |     Inst3     |     Inst4     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -215,10 +267,9 @@ Input block:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
-### INT Transit Hops
-Key: Symmetric key shared between transit node and verifier.
-
-Input block:
+#### Regular MAC Calculation
+The MAC of the second and all following telemetry stack entries is calculated
+over:
 ```
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
@@ -237,28 +288,27 @@ Input block:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
+### Encryption
+Stack entries are encrypted using AES in counter mode (AES-CTR) with a 12-byte
+random nonce stored with the encrypted data. Metadata is encrypted by XORing the
+the ramdom bit stream produced by AES-CTR with the metadata and any padding it
+contains. Both the nonce and the encrypted telemetry are covered by the MAC.
 
-Supported Metadata
-------------------
-### Fixed-Length Metadata
-Some types of metadata are very likely to be used in combination with other metadata. To avoid
-taking up slots for variable-length metadata, these metadata items have their own separate
-instruction bitmap.
+### Telemetry Instructions
+Telemetry is requested in two different ways. Information identifying a node and
+the interfaces taken by the packet are requested using instruction flags.
+Additionally, there is an instruction flags for requesting the number of
+telemetry entries that have been aggregated into one. All other metadata is
+requested using an instruction byte in one of the four instruction slots of the
+ID-INT main header.
 
-- Node ID (4 bytes)
-- Node count (2 bytes)
-- Ingress device-level interface identifier (2 bytes)
-- Egress device-level interface identifier (2 bytes)
-
-### Variable-Length Metadata
-- [Metadata List](metadata/metadata.md)
-- [Assigned Instructions Overview](metadata/instructions.md)
-
-#### Instruction Encoding
+#### Metadata Instructions
+There are four slots for metadata instructions. Each slot can contain any
+instruction. Telemetry instructions are encoded as follows:
 ```
 Bit 01234567
     llriiiii
-
+```
 - Bit 0:1 : Length of the corresponding metadata
   - 00 = 2 bytes
   - 01 = 4 bytes
@@ -266,4 +316,6 @@ Bit 01234567
   - 11 = 8 bytes
 - Bit 2   : Reserved, must be 0
 - Bit 3:7 : Instruction
-```
+
+The full table of all metadata instructions is given
+[here](metadata/instructions.md).

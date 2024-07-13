@@ -107,23 +107,23 @@
       brief: "Egress interface HW speed"
     - name: "GPS latitude"
       p4: GPS_LAT
-      instruction: 0xC3
-      length: 8
+      instruction: 0x47
+      length: 4
       unit: "degree"
       gress: ingress
-      brief: "IEEE 754 double-precision"
+      brief: "IEEE 754 single-precision"
     - name: "GPS longitude"
       p4: GPS_LONG
-      instruction: 0xC4
-      length: 8
+      instruction: 0x48
+      length: 4
       unit: "degree"
       gress: ingress
-      brief: "IEEE 754 double-precision"
+      brief: "IEEE 754 single-precision"
 - name: "Device hardware status"
   metadata:
     - name: "Uptime"
       p4: UPTIME
-      instruction: 0x47
+      instruction: 0x49
       length: 4
       unit: "second"
       gress: ingress
@@ -162,7 +162,7 @@
       length: 2
       unit: "Watt"
       gress: ingress
-      brief: "Total power draw fo the device"
+      brief: "Total instantaneous power draw of the device"
     - name: "Energy mix"
       p4: ENERGY_MIX
       instruction: 0x09
@@ -175,14 +175,14 @@
         - Fossil    F = 1 - (R + N)
     - name: "Forwarding energy"
       p4: FWD_ENERGY
-      instruction: 0x48
+      instruction: 0x4A
       length: 4
       unit: "nJ"
       gress: egress
       brief: "Energy for forwarding the packet"
     - name: "CO2 per packet"
       p4: CO2_EMISSION
-      instruction: 0x49
+      instruction: 0x4B
       length: 4
       unit: "pg"
       gress: egress
@@ -202,13 +202,13 @@
       gress: egress
     - name: "Ingress link RX util"
       p4: INGRESS_LINK_RX
-      instruction: 0x4A
+      instruction: 0x4C
       length: 4
       unit: "kbit/s"
       gress: ingress
     - name: "Egress link TX util"
       p4: EGRESS_LINK_TX
-      instruction: 0x4B
+      instruction: 0x4D
       length: 4
       unit: "kbit/s"
       gress: egress
@@ -287,35 +287,42 @@
   metadata:
     - name: "Queue ID"
       p4: QUEUE_ID
-      instruction: 0x4C
+      instruction: 0x4E
       length: 4
       gress: egress
     - name: "Instantaneous queue length"
       p4: INST_QUEUE_LEN
-      instruction: 0x4D
+      instruction: 0x4F
       length: 4
       unit: "packets"
       gress: egress
     - name: "Average queue length"
       p4: AVG_QUEUE_LEN
-      instruction: 0x4E
+      instruction: 0x50
       length: 4
       unit: "packets"
       gress: egress
     - name: "Buffer ID"
       p4: BUFFER_ID
-      instruction: 0x4F
+      instruction: 0x51
       length: 4
       gress: egress
     - name: "Instantaneous buffer occupancy"
       p4: INST_BUFFER_OCC
-      instruction: 0x50
+      instruction: 0x52
       length: 4
       unit: "packets"
       gress: egress
     - name: "Average buffer occupancy"
       p4: AVG_BUFFER_OCC
-      instruction: 0x51
+      instruction: 0x53
       length: 4
       unit: "packets"
       gress: egress
+- name: "No operation"
+  metadata:
+    - name: "NOP"
+      p4: NOP
+      instruction: 0xFF
+      length: 0
+      gress: ingress

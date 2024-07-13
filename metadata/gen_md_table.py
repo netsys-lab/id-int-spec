@@ -9,7 +9,8 @@ parser = argparse.ArgumentParser(description="Format metadata definitions")
 parser.add_argument("--input", default="./metadata.yaml", help="Metadata definitions")
 parser.add_argument("--tables", default=None, help="Output file for tables ordered by category")
 parser.add_argument("--inst-assign", default=None, help="Output file for instruction overview table")
-parser.add_argument("--p4", default=None, help="Output file for P4 definitions of the instructions")
+parser.add_argument("--p4", default=None, help="Output file for P4 constants")
+parser.add_argument("--go", default=None, help="Output file for Go constants")
 args = parser.parse_args()
 
 
@@ -39,7 +40,7 @@ if args.tables:
                     for line in md['details'].split("\n"):
                         f.write(f"  {line}\n")
 
-if args.inst_assign or args.p4:
+if args.inst_assign or args.p4 or args.go:
     flat = [md for group in defs for md in group['metadata']]
     flat.sort(key=lambda md: md['instruction'])
 
@@ -58,3 +59,11 @@ if args.p4:
             f.write("    {p4:<16} = 0x{instruction:>02X}".format(**md))
             f.write(",\n" if i < (len(flat) - 1) else "\n")
         f.write("}\n")
+
+if args.go:
+    with open(args.go, 'w') as f:
+        f.write("// ID-INT Instructions\n")
+        f.write("const (\n")
+        for i, md in enumerate(flat):
+            f.write(f"    {'IntInst' + md['p4'].title().replace('_', ''):<22} = 0x{md['instruction']:>02X}\n")
+        f.write(")\n")

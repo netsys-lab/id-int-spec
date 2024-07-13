@@ -17,17 +17,19 @@ Inst | Length | Written in | Metadatum
 0x44 |      4 |    ingress | Node IPv4 address
 0x45 |      4 |    ingress | Ingress IF speed
 0x46 |      4 |    ingress | Egress IF speed
-0x47 |      4 |    ingress | Uptime
-0x48 |      4 |     egress | Forwarding energy
-0x49 |      4 |     egress | CO2 per packet
-0x4A |      4 |    ingress | Ingress link RX util
-0x4B |      4 |     egress | Egress link TX util
-0x4C |      4 |     egress | Queue ID
-0x4D |      4 |     egress | Instantaneous queue length
-0x4E |      4 |     egress | Average queue length
-0x4F |      4 |     egress | Buffer ID
-0x50 |      4 |     egress | Instantaneous buffer occupancy
-0x51 |      4 |     egress | Average buffer occupancy
+0x47 |      4 |    ingress | GPS latitude
+0x48 |      4 |    ingress | GPS longitude
+0x49 |      4 |    ingress | Uptime
+0x4A |      4 |     egress | Forwarding energy
+0x4B |      4 |     egress | CO2 per packet
+0x4C |      4 |    ingress | Ingress link RX util
+0x4D |      4 |     egress | Egress link TX util
+0x4E |      4 |     egress | Queue ID
+0x4F |      4 |     egress | Instantaneous queue length
+0x50 |      4 |     egress | Average queue length
+0x51 |      4 |     egress | Buffer ID
+0x52 |      4 |     egress | Instantaneous buffer occupancy
+0x53 |      4 |     egress | Average buffer occupancy
 0x80 |      6 |    ingress | Zero 6 bytes
 0x81 |      6 |    ingress | ASN
 0x82 |      6 |    ingress | Ingress timestamp
@@ -47,5 +49,4 @@ Inst | Length | Written in | Metadatum
 0xC0 |      8 |    ingress | Zero 8 bytes
 0xC1 |      8 |    ingress | Node IPv6 address (hi)
 0xC2 |      8 |    ingress | Node IPv6 address (lo)
-0xC3 |      8 |    ingress | GPS latitude
-0xC4 |      8 |    ingress | GPS longitude
+0xFF |      0 |    ingress | NOP
