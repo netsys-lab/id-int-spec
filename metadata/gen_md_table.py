@@ -53,7 +53,7 @@ if args.inst_assign:
 
 if args.p4:
     with open(args.p4, 'w') as f:
-        f.write("// Metadata Instructions\n")
+        f.write("// Metadata instructions\n")
         f.write("enum bit<8> idint_mdid_t {\n")
         for i, md in enumerate(flat):
             f.write("    {p4:<16} = 0x{instruction:>02X}".format(**md))
@@ -62,8 +62,8 @@ if args.p4:
 
 if args.go:
     with open(args.go, 'w') as f:
-        f.write("// ID-INT Instructions\n")
+        f.write("// ID-INT instructions\n")
         f.write("const (\n")
         for i, md in enumerate(flat):
-            f.write(f"    {'IntInst' + md['p4'].title().replace('_', ''):<22} = 0x{md['instruction']:>02X}\n")
+            f.write(f"    {'IdIntI' + md['p4'].title().replace('_', ''):<22} = 0x{md['instruction']:>02X}\n")
         f.write(")\n")

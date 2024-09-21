@@ -1,4 +1,4 @@
-// Metadata Instructions
+// Metadata instructions
 enum bit<8> idint_mdid_t {
     ZERO_2           = 0x00,
     ISD              = 0x01,
