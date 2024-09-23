@@ -223,10 +223,10 @@ Concatenation of the metadata fields without any padding or alignment.
 Message Authentication Code for checking telemetry authenticity.
 
 ### Message Authentication Codes
-MACs are computed using the AES-CMAC algorithm with 128-bit keys. Stack entries
-are chained by including the MAC of the previous entry in the next one. The
-source entry is computed in a special way and includes fields from the main
-header.
+MACs are computed using AES-CBC with a fixed initialization vector of 0. Stack
+entries are chained by including the MAC of the previous entry in the next one.
+The source entry is computed in a special way and includes fields from the main
+header. All keys have a length of 128 bit matching SCION's DRKey.
 
 The keys for MAC computation are derived between router and verifier using
 DRKey. As a special case, if the INT source and the verifier are the same (i.e.,
@@ -251,7 +251,7 @@ The source MAC is calculated over:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |         VerifierISD           |                               | \
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               | |
-|                          VerifierAS                           | | Only if Vrf == 0
+|                          VerifierAS                           | | If Vrf == 0
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
 |                       VerifierHostAddr (4-16 bytes)           | /
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -289,10 +289,15 @@ over:
 ```
 
 ### Encryption
-Stack entries are encrypted using AES in counter mode (AES-CTR) with a 12-byte
-random nonce stored with the encrypted data. Metadata is encrypted by XORing the
-the ramdom bit stream produced by AES-CTR with the metadata and any padding it
-contains. Both the nonce and the encrypted telemetry are covered by the MAC.
+If encryption is enabled, stack entries are authenticated and encrypted using a
+modified AES-CCM (Counter with CBC-MAC) AEAD construction. AES-CCM first
+computes the CBC-MAC as for unencrypted stack entries. In addition to the
+regular header and metadata fields, the MAC must contain a 12-byte nonce used
+for encryption and included in each stack entry. Encryption itself is performed
+using AES in counter mode (AES-CTR). The (padded) metadata and MAC computed in
+the previous step are encrypted by XORing with the the ramdom bit stream
+produced by AES-CTR. The nonce must not repeat under the same key and should be
+selected randomly for every packet.
 
 ### Telemetry Instructions
 Telemetry is requested in two different ways. Information identifying a node and
