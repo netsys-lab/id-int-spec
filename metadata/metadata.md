@@ -1,4 +1,5 @@
-### Zero
+# ID-INT Metadata Types
+## Zero
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
@@ -7,7 +8,7 @@ Zero 4 bytes                    | 0x40 |      4 |         | Insert four zero byt
 Zero 6 bytes                    | 0x80 |      6 |         | Insert six zero bytes
 Zero 8 bytes                    | 0xC0 |      8 |         | Insert eight zero bytes
 
-### Static SCION AS-level
+## Static SCION AS-level
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
@@ -15,14 +16,14 @@ ISD                             | 0x01 |      2 |         | SCION ISD identifier
 ASN                             | 0x81 |      6 |         | SCION AS number
 BR link type                    | 0x02 |      2 |         | Ingress+egress link type (L2, BGP, etc.)
 
-### Static device-level
+## Static device-level
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
-Device type/role                | 0x03 |      2 |         | First byte is type, second byte is role
+Device type/role                | 0x03 |      2 |         | MSB is device role, LSB is type
 Device vendor                   | 0x41 |      4 |         | MAC address vendor identity
-Device model                    | 0x42 |      4 |         | Model number
-Software version                | 0x43 |      4 |         | Current software version
+Device model                    | 0x42 |      4 |         | Vendor-assigned model number
+Software version                | 0x43 |      4 |         | Vendor-assigned software version
 Node IPv4 address               | 0x44 |      4 |         | Internal IPv4 address
 Node IPv6 address (hi)          | 0xC1 |      8 |         | Internal IPv6 address (high order bytes)
 Node IPv6 address (lo)          | 0xC2 |      8 |         | Internal IPv6 address (low order bytes)
@@ -31,7 +32,44 @@ Egress IF speed                 | 0x46 |      4 |  Mbit/s | Egress interface HW 
 GPS latitude                    | 0x47 |      4 |  degree | IEEE 754 single-precision
 GPS longitude                   | 0x48 |      4 |  degree | IEEE 754 single-precision
 
-### Device hardware status
+### Device type/role
+
+MSB  | Role
+----:|---------------------
+0x00 | Other / Not Assigned
+0x01 | End host
+0x02 | SCION Border Router
+0x03 | IP Router
+0x04 | Router (other)
+0x05 | SCION-IP Gateway
+0x06 | SCION-IP Translator
+0x07 | Gateway (other)
+
+LSB  | Type
+----:|-------------------------------------------------------------
+0x00 | Other / Not Assigned
+0x01 | Official reference implementation from [github.com/scionproto](https://github.com/scionproto)
+
+### Device vendor
+
+Ethernet OUI of the device vendor.
+- [IEEE Registration Authority](https://standards.ieee.org/products-programs/regauth/)
+- [Vendor lookup tool](https://www.wireshark.org/tools/oui-lookup.html)
+
+### Software version
+
+Version numbers should follow the Semantic Versioning Specification.
+Suggested format:
+```
+0                   1                   2                   3
+0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|   Major version   |    Minor version  |     Patch version     |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+
+## Device hardware status
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
@@ -45,22 +83,21 @@ Energy mix                      | 0x09 |      2 |         |
 Forwarding energy               | 0x4A |      4 |      nJ | Energy for forwarding the packet
 CO2 per packet                  | 0x4B |      4 |      pg |
 
-#### Details
-- CPU/Memory usage
+### CPU/Memory usage
 
-  Normalized CPU and memory usage
-  - CPU Usage = first byte / 255
-  - Memory usage = second byte / 255
-  
-- Energy mix
+Normalized CPU and memory usage
+- CPU Usage = first byte / 255
+- Memory usage = second byte / 255
 
-  Normalized mix of renewable, nuclear, and fossil energy sources
-  - Renewable R = first byte / 255
-  - Nuclear   N = second byte / 255
-  - Fossil    F = 1 - (R + N)
-  
+### Energy mix
 
-### Ingress/Egress port statistics
+Normalized mix of renewable, nuclear, and fossil energy sources
+- Renewable R = first byte / 255
+- Nuclear   N = second byte / 255
+- Fossil    F = 1 - (R + N)
+
+
+## Ingress/Egress port statistics
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
@@ -81,7 +118,7 @@ Egress total pkt drop count     | 0x8D |      6 | packets |
 Ingress total byte count        | 0x8E |      6 |    byte |
 Egress total byte count         | 0x8F |      6 |    byte |
 
-### Queue and buffer utilization
+## Queue and buffer utilization
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
@@ -92,7 +129,7 @@ Buffer ID                       | 0x51 |      4 |         |
 Instantaneous buffer occupancy  | 0x52 |      4 | packets |
 Average buffer occupancy        | 0x53 |      4 | packets |
 
-### No operation
+## No operation
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------

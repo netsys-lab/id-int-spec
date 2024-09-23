@@ -1,12 +1,11 @@
 #!/usr/bin/python3
 
 import argparse
-import itertools
 import yaml
 
 
 parser = argparse.ArgumentParser(description="Format metadata definitions")
-parser.add_argument("--input", default="./metadata.yaml", help="Metadata definitions")
+parser.add_argument("input", help="Metadata definitions")
 parser.add_argument("--tables", default=None, help="Output file for tables ordered by category")
 parser.add_argument("--inst-assign", default=None, help="Output file for instruction overview table")
 parser.add_argument("--p4", default=None, help="Output file for P4 constants")
@@ -19,10 +18,11 @@ with open(args.input, 'r') as file:
 
 if args.tables:
     with open(args.tables, 'w') as f:
+        f.write(f"# ID-INT Metadata Types\n")
         for i, group in enumerate(defs):
             if i > 0:
                 f.write("\n")
-            f.write(f"### {group['name']}\n\n")
+            f.write(f"## {group['name']}\n\n")
             f.write("Metadatum                       | Inst | Length |   Unit  | Description\n")
             f.write("--------------------------------|-----:|-------:|--------:|-----------------------------------------\n")
             for md in group['metadata']:
@@ -34,11 +34,11 @@ if args.tables:
 
             details = [md for md in group['metadata'] if md.get('details')]
             if len(details) > 0:
-                f.write("\n#### Details\n")
+                f.write("\n")
                 for md in details:
-                    f.write(f"- {md['name']}\n\n")
+                    f.write(f"### {md['name']}\n\n")
                     for line in md['details'].split("\n"):
-                        f.write(f"  {line}\n")
+                        f.write(f"{line}\n")
 
 if args.inst_assign or args.p4 or args.go:
     flat = [md for group in defs for md in group['metadata']]

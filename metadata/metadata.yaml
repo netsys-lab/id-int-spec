@@ -54,25 +54,58 @@
       instruction: 0x03
       length: 2
       gress: ingress
-      brief: "First byte is type, second byte is role"
+      brief: "MSB is device role, LSB is type"
+      details: |
+        MSB  | Role
+        ----:|---------------------
+        0x00 | Other / Not Assigned
+        0x01 | End host
+        0x02 | SCION Border Router
+        0x03 | IP Router
+        0x04 | Router (other)
+        0x05 | SCION-IP Gateway
+        0x06 | SCION-IP Translator
+        0x07 | Gateway (other)
+
+        LSB  | Type
+        ----:|-------------------------------------------------------------
+        0x00 | Other / Not Assigned
+        0x01 | Official reference implementation from [github.com/scionproto](https://github.com/scionproto)
+
     - name: "Device vendor"
       p4: DEVICE_VENDOR
       instruction: 0x41
       length: 4
       gress: ingress
       brief: "MAC address vendor identity"
+      details: |
+        Ethernet OUI of the device vendor.
+        - [IEEE Registration Authority](https://standards.ieee.org/products-programs/regauth/)
+        - [Vendor lookup tool](https://www.wireshark.org/tools/oui-lookup.html)
+
     - name: "Device model"
       p4: DEVICE_MODEL
       instruction: 0x42
       length: 4
       gress: ingress
-      brief: "Model number"
+      brief: "Vendor-assigned model number"
     - name: "Software version"
       p4: SOFTWARE_VERSION
       instruction: 0x43
       length: 4
       gress: ingress
-      brief: "Current software version"
+      brief: "Vendor-assigned software version"
+      details: |
+        Version numbers should follow the Semantic Versioning Specification.
+        Suggested format:
+        ```
+        0                   1                   2                   3
+        0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        |   Major version   |    Minor version  |     Patch version     |
+        +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+        ```
+
     - name: "Node IPv4 address"
       p4: NODE_IPV4_ADDR
       instruction: 0x44
@@ -137,6 +170,7 @@
         Normalized CPU and memory usage
         - CPU Usage = first byte / 255
         - Memory usage = second byte / 255
+
     - name: "CPU temperature"
       p4: CPU_TEMP
       instruction: 0x05
@@ -173,6 +207,7 @@
         - Renewable R = first byte / 255
         - Nuclear   N = second byte / 255
         - Fossil    F = 1 - (R + N)
+
     - name: "Forwarding energy"
       p4: FWD_ENERGY
       instruction: 0x4A
