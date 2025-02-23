@@ -1,6 +1,6 @@
 // Metadata instructions
 enum bit<8> idint_mdid_t {
-    ZERO_2           = 0x00,
+    NOP              = 0x00,
     ISD              = 0x01,
     BR_LINK_TYPE     = 0x02,
     DEVICE_TYPE_ROLE = 0x03,
@@ -10,7 +10,6 @@ enum bit<8> idint_mdid_t {
     FAN_SPEED        = 0x07,
     TOTAL_POWER      = 0x08,
     ENERGY_MIX       = 0x09,
-    ZERO_4           = 0x40,
     DEVICE_VENDOR    = 0x41,
     DEVICE_MODEL     = 0x42,
     SOFTWARE_VERSION = 0x43,
@@ -30,7 +29,6 @@ enum bit<8> idint_mdid_t {
     BUFFER_ID        = 0x51,
     INST_BUFFER_OCC  = 0x52,
     AVG_BUFFER_OCC   = 0x53,
-    ZERO_6           = 0x80,
     ASN              = 0x81,
     INGRESS_TSTAMP   = 0x82,
     EGRESS_TSTAMP    = 0x83,
@@ -46,8 +44,6 @@ enum bit<8> idint_mdid_t {
     EG_PKT_DROP      = 0x8D,
     IG_BYTES         = 0x8E,
     EG_BYTES         = 0x8F,
-    ZERO_8           = 0xC0,
     NODE_IPV6_ADDR_H = 0xC1,
-    NODE_IPV6_ADDR_L = 0xC2,
-    NOP              = 0xFF
+    NODE_IPV6_ADDR_L = 0xC2
 }

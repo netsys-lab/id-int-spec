@@ -1,30 +1,10 @@
-- name: "Zero"
-  brief: "Constant zero"
+- name: "No operation"
   metadata:
-    - name: "Zero 2 bytes"
-      p4: ZERO_2
+    - name: "NOP"
+      p4: NOP
       instruction: 0x00
-      length: 2
+      length: 0
       gress: ingress
-      brief: "Insert two zero bytes"
-    - name: "Zero 4 bytes"
-      p4: ZERO_4
-      instruction: 0x40
-      length: 4
-      gress: ingress
-      brief: "Insert four zero bytes"
-    - name: "Zero 6 bytes"
-      p4: ZERO_6
-      instruction: 0x80
-      length: 6
-      gress: ingress
-      brief: "Insert six zero bytes"
-    - name: "Zero 8 bytes"
-      p4: ZERO_8
-      instruction: 0xC0
-      length: 8
-      gress: ingress
-      brief: "Insert eight zero bytes"
 - name: "Static SCION AS-level"
   brief: "Static SCION-specific metadata on the AS-level"
   metadata:
@@ -354,10 +334,3 @@
       length: 4
       unit: "packets"
       gress: egress
-- name: "No operation"
-  metadata:
-    - name: "NOP"
-      p4: NOP
-      instruction: 0xFF
-      length: 0
-      gress: ingress

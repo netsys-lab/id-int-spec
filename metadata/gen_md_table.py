@@ -10,6 +10,7 @@ parser.add_argument("--tables", default=None, help="Output file for tables order
 parser.add_argument("--inst-assign", default=None, help="Output file for instruction overview table")
 parser.add_argument("--p4", default=None, help="Output file for P4 constants")
 parser.add_argument("--go", default=None, help="Output file for Go constants")
+parser.add_argument("--py", default=None, help="Output file for Python constants")
 args = parser.parse_args()
 
 
@@ -40,7 +41,7 @@ if args.tables:
                     for line in md['details'].split("\n"):
                         f.write(f"{line}\n")
 
-if args.inst_assign or args.p4 or args.go:
+if args.inst_assign or args.p4 or args.go or args.py:
     flat = [md for group in defs for md in group['metadata']]
     flat.sort(key=lambda md: md['instruction'])
 
@@ -67,3 +68,11 @@ if args.go:
         for i, md in enumerate(flat):
             f.write(f"    {'IdIntI' + md['p4'].title().replace('_', ''):<22} = 0x{md['instruction']:>02X}\n")
         f.write(")\n")
+
+if args.py:
+    with open(args.py, 'w') as f:
+        f.write("# ID-INT instructions\n")
+        f.write("_instructions = {\n")
+        for i, md in enumerate(flat):
+            f.write(f'    0x{md['instruction']:>02X}: "{md['p4'].lower()}",\n')
+        f.write("}\n")

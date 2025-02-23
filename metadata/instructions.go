@@ -1,6 +1,6 @@
 // ID-INT instructions
 const (
-    IdIntIZero2            = 0x00
+    IdIntINop              = 0x00
     IdIntIIsd              = 0x01
     IdIntIBrLinkType       = 0x02
     IdIntIDeviceTypeRole   = 0x03
@@ -10,7 +10,6 @@ const (
     IdIntIFanSpeed         = 0x07
     IdIntITotalPower       = 0x08
     IdIntIEnergyMix        = 0x09
-    IdIntIZero4            = 0x40
     IdIntIDeviceVendor     = 0x41
     IdIntIDeviceModel      = 0x42
     IdIntISoftwareVersion  = 0x43
@@ -30,7 +29,6 @@ const (
     IdIntIBufferId         = 0x51
     IdIntIInstBufferOcc    = 0x52
     IdIntIAvgBufferOcc     = 0x53
-    IdIntIZero6            = 0x80
     IdIntIAsn              = 0x81
     IdIntIIngressTstamp    = 0x82
     IdIntIEgressTstamp     = 0x83
@@ -46,8 +44,6 @@ const (
     IdIntIEgPktDrop        = 0x8D
     IdIntIIgBytes          = 0x8E
     IdIntIEgBytes          = 0x8F
-    IdIntIZero8            = 0xC0
     IdIntINodeIpv6AddrH    = 0xC1
     IdIntINodeIpv6AddrL    = 0xC2
-    IdIntINop              = 0xFF
 )

@@ -1,12 +1,9 @@
 # ID-INT Metadata Types
-## Zero
+## No operation
 
 Metadatum                       | Inst | Length |   Unit  | Description
 --------------------------------|-----:|-------:|--------:|-----------------------------------------
-Zero 2 bytes                    | 0x00 |      2 |         | Insert two zero bytes
-Zero 4 bytes                    | 0x40 |      4 |         | Insert four zero bytes
-Zero 6 bytes                    | 0x80 |      6 |         | Insert six zero bytes
-Zero 8 bytes                    | 0xC0 |      8 |         | Insert eight zero bytes
+NOP                             | 0x00 |      0 |         |
 
 ## Static SCION AS-level
 
@@ -128,9 +125,3 @@ Average queue length            | 0x50 |      4 | packets |
 Buffer ID                       | 0x51 |      4 |         |
 Instantaneous buffer occupancy  | 0x52 |      4 | packets |
 Average buffer occupancy        | 0x53 |      4 | packets |
-
-## No operation
-
-Metadatum                       | Inst | Length |   Unit  | Description
---------------------------------|-----:|-------:|--------:|-----------------------------------------
-NOP                             | 0xFF |      0 |         |

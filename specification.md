@@ -1,9 +1,10 @@
 ID-INT: Inter-Domain In-band Network Telemetry
 ==============================================
 
-ID-INT (inter-domain in-band network telemetry) is an extension to the SCION
+ID-INT (Inter-Domain In-band Network Telemetry) is an extension to the SCION
 Internet architecture that allows routers of different ASes to share telemetry
-information with other outers and end host via INT headers.
+information with other routers and end hosts via hop-by-hop extension header
+options.
 
 ID-INT has many applications, including:
 - Providing richer network debugging information than possible with ping and
@@ -27,28 +28,98 @@ ID-INT Features:
 ID-INT Data Plane Specification
 -------------------------------
 
-The ID-INT header is inserted between the SCION hop-by-hop and end-to-end option
-headers. If no other options are present, ID-INT immediately follows the SCION
-header (ane the path contained within the SCION header). ID-INT is not a
-hop-by-hop extension header itself to simplify parsing in hardware routers and
-to allow for a larger maximum size. ID-INT is identifyied by a value of 253 in
-the next header field of the SCION or hop-by-hop extension header. 253 is
-reserved for experiments by the SCION specification and will be replaced with a
-standardized value in the future.
+ID-INT defines two new types of option headers that are inserted in the SCION
+hop-by-hop extension header. The new options are the *IdIntOption* and
+*IdIntEntry*. IdIntOption is the main ID-INT header containing instructions
+for border routers and marking the packet as an ID-INT probe. IdIntEntries
+contain the telemetry responses from routers and must immediately follow the
+IdIntOption without any other option types in between. In other words, a packet
+may have at most one IdIntOption, but usually contains more than on IdIntEntry
+option.
 
-In the following, we describe the layout and semantics of the ID-INT header and
-the telemetry stack entries it contains.
+IdIntEntries form a stack that grows from top (lowest address) to bottom
+(highest address). The space for all IdIntEntry options is preallocated by the
+INT source. Unused space is filled with *PadN* options that immediately follow
+the last IdIntEntry option. IdIntEntries must be aligned at 4-byte boundaries
+and have a length that is a multiple of 4 bytes, therefore the padding options
+also must be a multiple of 4 bytes in size.
 
-### ID-INT Main Header
-The ID-INT main header not including the telemetry stack is 20 to 40 bytes long.
+An ID-INT SCION packet with not other hop-by-hop options and additional
+end-to-end options has to following layout:
+```
+###[ IP ]###
+###[ UDP ]###
+###[ SCION ]###
+        NextHdr   = HopByHopExt
+        \Path      \
+         |###[ SCION Path ]###
+         |  \InfoFields\
+         |  \HopFields \
+###[ SCION Hop-by-Hop Options ]###
+           NextHdr   = EndToEndExt
+           ExtLen    = 24
+           \Options   \
+            |###[ ID-INT ]###
+            |  opt_type  = 2
+            |  \stack     \
+            |   |###[ IdIntEntry ]###
+            |   |  opt_type  = 3
+            |   |  flags     = source
+            |   |###[ IdIntEntry ]###
+            |   |###[ IdIntEntry ]###
+            |   |###[ PadN ]###
+            |   |  OptType   = 1
+            |   |  OptDataLen= 2
+            |   |  OptData   = 0000
+###[ SCION End-to-End Options ]###
+              NextHdr   = UDP
+###[ UDP ]###
+```
 
 ```
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| Ver |I|D|E|X|R|Mod|Vrf|VT |VL |    Length     |    NextHdr    |
+|            SCION Main, Address, and Path Header               |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| DelayHops |Res|  MaxStackLen  | InstF | AF1 | AF2 | AF3 | AF4 |
+|    NextHdr    |     ExtLen    |                               |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+|                       ID-INT Main Option                      |
+/                              ...                              /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                        Source Telemetry                       |
+/                              ...                              /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/                 ... more telemetry options ...                /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|        One or multiple PadN options bringing the total        /
+|        length of the telemetry stack to AllocStackLen         /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+/          Remaining HBH option not related to ID-INT           /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+```
+
+In the following, we describe the layout and semantics of the IdIntOption and
+IdIntEntry header and the telemetry data they contain.
+
+### ID-INT Main Option Header (IdIntOption)
+
+The ID-INT main option header is between 22 and 46 bytes long depending on
+whether a verifier address is included and how long the host part of this
+address is. The option must be aligned two bytes past a four byte boundary, i.e.
+as 4n+2 for an integer n. Such alignment allows the main option header to
+directly follow the HBH option header without additional padding. If another
+option precedes the ID-INT main option header, padding options must be inserted.
+
+```
+ 0                   1                   2                   3
+ 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                                |    OptType    |   OptDatLen   |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| Ver |I|D|E|X|R|Mod|Vrf|VT |VL |   StackLen    |      TOS      |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+| DelayHops |      Reserved     | InstF | AF1 | AF2 | AF3 | AF4 |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |     Inst1     |     Inst2     |     Inst3     |     Inst4     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -60,28 +131,37 @@ The ID-INT main header not including the telemetry stack is 20 to 40 bytes long.
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               | |
 |                          VerifierAS                           | | If Vrf == 0
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
-|                       VerifierHostAddr (4-16 bytes)           | /
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                        Telemetry Stack                        |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                              ...                              |
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+|                       VerifierHostAddr (4-16 bytes)           | |
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ /
 ```
+
+##### **OptType**
+SCION hop-by-hop option type.
+
+#### **OptDataLen**
+Length of the ID-INT main header in bytes. Does not include the telemetry stack
+entries which are stored in their own options.
 
 ##### **Ver** (Version)
 Version of the telemetry header. Currently 0.
 
 ##### **Flags**
-- `I` INT between infrastructure nodes (e.g., border routers) instead of end
-      host. If set, the border router of the destination AS may remove the INT
-      header before the packet reaches the destination host, otherwise the INT
-      header should not be removed.
-- `D` Discard Packet: Discard the packet at the INT sink. This is useful for
-      probe packets that do not carry application data.
-- `E` Encrypt the telemetry.
-- `X` Max header size exceeded: Some metadata was omitted, because `Length`
-      would have exceeded `MaxStackLen`.
-- `R` Reserved. Must be zero.
+- `I` Infrastructure Mode. If ID-INT probes are exchanged between infrastructure
+      nodes (e.g., border routers) instead of end host, this flag must be set.
+      In infrastructure mode, the border router of the destination AS may remove
+      the ID-INT option headers before the packet reaches the destination host,
+      otherwise the ID-INT options must not be removed.
+- `D` Discard Packet. Discard the packet at the telemetry sink. In Host-ID-INT
+      mode, the sink is the end host or ID-INT compatible application. If the
+      discard flag is set, the end host stack or application should ignore the
+      packet's payload. In Infrastructure mode, the entire packet should be
+      discarded by the sink before it is delivered to an end host.
+- `E` Encrypted telemetry. Enable encryption of the telemetry payload in the
+      IdIntEntry options.
+- `X` Telemetry stack space exhausted. Set by ID-INT nodes when no more
+      telemetry data could be added to the telemetry stack, because the
+      source-allocated space was exhausted.
+- `R` Reserved. Must be set to zero.
 
 ##### **Mod** (Aggregation Mode)
 - `0` Unlimited stack entries per AS. All border routers and internal routers
@@ -104,23 +184,22 @@ Type of the host address in `VerifierHostAddr` with the same encoding as the
 Length of the host address in `VerifierHostAddr` with the same encoding as the
 `DT`/`ST` fields in the SCION address header. Must be zero if `V` is not set.
 
-##### **Length**
-Length of the telemetry stack in multiples of 4 bytes.
+##### **StackLen**
+Allocated space for the telemetry stack in multiples of 4 bytes. The combined
+size of all telemetry options following the ID-INT main option must never exceed
+this value. The ID-INT-source is responsible for reserving StackLen bytes
+directly follosing the ID-INT main option header by inserting one or more
+padding options.
 
-##### **NextHdr**
-Indicates the next header following ID-INT. Equivalent to the NextHdr field in
-SCION.
-
-##### **DelayHops**
-The number of AS-level hops to skip before the first telemetry data is recorded.
-
-##### **MaxStackLen**
-Maximum length of the telemetry stack in multiples of 4 bytes. If pushing
-another entry would increase the stack size beyond this value, the entry is not
-pushed and the `X` flag is set.
+##### **TOS** (Top of Stack)
+Offset of the first byte of the last (most recently written) entry on the
+telemetry stack in multiples of 4 bytes. The ID-INT source must initialize TOS
+to zero and initialize the telemetry stack by pushing (potentially empty) source
+telemetry.
 
 #### **InstF** (Instruction Flags)
-Instruction flags requesting a subset of the four default metadata.
+Instruction bitmap requesting a subset of the four bitmap-controlled telemetry
+data types.
 
 #### **AF** (Aggregation Function 1-4)
 Aggregation function to use for each of the four metadata slots corresponding to
@@ -131,11 +210,17 @@ instruction byte `Inst1` to `Inst4`.
 - `011b` Maximum
 - `100b` Sum
 
+##### **DelayHops**
+The number of AS-level hops to skip before the first telemetry data is recorded.
+
+##### **Reserved**
+Reserved. Must be set to zero when written and ignored when read.
+
 ##### **Inst** (Instruction 1-4)
 Metadata request instructions for slot 1 to 4.
 
 ##### **Source Timestamp**
-48-bit timestamp in nanoseconds for replay suppression. If an INT source does
+48-bit timestamp in nanoseconds for replay suppression. If an ID-INT source does
 not support nanosecond precision timestamps, it still has to make sure packets
 using the same MAC keys have different timestamps, for example by including a
 sequence number in the least significant bits.
@@ -143,38 +228,61 @@ sequence number in the least significant bits.
 The keys used to authenticate and encrypt telemetry stack entries must be valid
 at the point in time identified by the source timestamp.
 
-The timestamp rolls around every ~3.26 days.
+The timestamp rolls around every ~3.26 days. The DRKey key epoch must not be
+longer than permitted by the timestamp roll-around.
 
 ##### **Source Port**
 Egress port of the INT source. The same source timestamp and egress port should
-not be reused by the same INT source until the verification keys have changed.
+not be reused by the same ID-INT source until the verification keys have
+changed.
 
 ##### **VerifierID**, **VerifierAS**, **VerifierHostAddr**
 SCION address of the verifier if `Vrf == 0`, otherwise omitted.
 
-##### Telemetry Stack
-The length of the telemetry stack is always a multiple of 4 bytes and all
-entries are 4-byte aligned. The stack is extended by inserting new stack entries
-at the top causing the entire packet to grow. At any point, the stack must
-contain at least one entry, called the source entry, which is added by the node
-inserting ID-INT into the header stack.
+### ID-INT Telemetry Stack
 
-#### Telemetry Stack Entries
+The telemetry stack immediately follows the ID-INT main option header. It
+consists of a non-empty sequence of IdIntEntry options followed by zero or
+more padding options to fill out unused reserved telemetry stack space.
+
+Telemetry stack entries are variable size, but their length is always a multiple
+of 4 bytes. Given the alignment requirements and size of the ID-INT main option,
+entries on the telemetry stack are aligned to 4 byte boundaries.
+
+The telemetry stack grows from top (lowest address) to bottom (highest address)
+by replacing reserved stack space occupied by padding options with IdIntOption
+headers. ID-INT nodes that append to the stack must ensure that the remaining
+unused stack space is occupied by valid padding options. The recommended way to
+ensure correct stack padding is to write a PadN option header immediately after
+the last stack entry that fills out the entire remaingin space. Doing so
+requires writing only two bytes, the PadN option type (OptType = 1) and length
+(OptDataLen). The content of the padding data can remain unchanged as it is
+ignored. The only situation in which no new padding header should be written is
+when the remaining unused stack size after writing the current node's telemetry
+data is exactly zero.
+
+At any point, the stack must contain at least IdIntEntry options, called the
+source entry, which is inserted simultaneously with the main option by the
+ID-INT source.
+
+#### ID-INT Stack Entry Option Header (IdIntEntry)
 Entries in the telemetry stack have a minimum length of 8 bytes and must be
-padded to be a multiple of 4 bytes in length. The metadata stack must contain at
+padded to multiple of 4 bytes in length. The metadata stack must contain at
 least the source metadata (with flag `S` set to 1).
 
 ```
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|S|I|E|A|C| Res |    Hop    |Res| Mask  | ML1 | ML2 | ML3 | ML4 |
+|    OptType    |  OptDataLen   |S|I|E|A|C| Res |    Hop    |Res|
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                                                               | \
-|                             Nonce                             | | If encrypted
-|                                                               | /
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                           Metadata                            |
+| Mask  | ML1 | ML2 | ML3 | ML4 |                               | \
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               | |
+|                          Nonce (96 bit)                       | | If encrypted
+|                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+|                               |                               | /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+|                       Metadata (variable size)                |
 |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                               |  Padding to a multiple of 4B  |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -182,21 +290,33 @@ least the source metadata (with flag `S` set to 1).
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 ```
 
+##### **OptType**
+SCION hop-by-hop option type.
+
+#### **OptDataLen**
+Length of the stack entry in bytes. Always a multiple of four.
+
 ##### **Flags**
 - `S` (Source)    Set for source metadata.
 - `I` (Ingress)   Set if this entry corresponds to an ingress BR.
 - `E` (Egress)    Set if this entry corresponds to an egress BR.
 - `A` (Aggregate) Set if this entry contains aggregated metadata from multiple
                   routers.
-- `C` (Encrypted) Set if the stack entry is encrypted. If set the nonce field
+- `C` (Encrypted) Set if the stack entry is encrypted. If set, the nonce field
                   must be present.
+
+##### **Res**
+Reserved. Must be set to zero when written and ignored when read.
 
 ##### **Hop**
 Index of the hop field this stack entry corresponds to. If the entry corresponds
 to multiple hop fields, the index of the first hop field the entry relates to.
 
 ##### **Mask**
-Metadata presence flags, indication which of the default metadata are present.
+Bitmap-controlled telemetry data presence mask. Corresponds the the instruction
+bitmap in the main option header and indicates which of the requested types of
+telemetry are actually present in this stack entry. Each of the four
+bitmap-controlled telemetry types has fixed length as indicated below.
 - Bit 0: Node ID (4 bytes)
 - Bit 1: Node count (2 bytes)
 - Bit 2: Ingress device-level interface identifier (2 bytes)
@@ -210,6 +330,9 @@ indicates the metadata is not present. Encoding:
 - `101b` = 4 bytes
 - `110b` = 6 bytes
 - `111b` = 8 bytes
+
+##### **Reserved**
+Reserved. Must be set to zero when written and ignored when read.
 
 #### **Nonce**
 12-byte random nonce for decrypting the metadata. Only present if `C` flag is
@@ -238,10 +361,12 @@ The source MAC is calculated over:
 ```
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
+                                +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
+                                |    OptType    |   OptDatLen   |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-| Ver |I|D|E|0|0|Mod|Vrf|VT |VL |       0       |       0       |
+| Ver |I|D|E|X|R|Mod|Vrf|VT |VL |   StackLen    |       0       |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|       0       |  MaxStackLen  | InstF | AF1 | AF2 | AF3 | AF4 |
+|     0     |         0         | InstF | AF1 | AF2 | AF3 | AF4 |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |     Inst1     |     Inst2     |     Inst3     |     Inst4     |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -255,13 +380,15 @@ The source MAC is calculated over:
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
 |                       VerifierHostAddr (4-16 bytes)           | /
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|1|I|E|0|C|  0  |    Hop    | 0 | Mask  | ML1 | ML2 | ML3 | ML4 |
+|    OptType    |  OptDataLen   |1|I|E|0|C|  0  |    Hop    | 0 |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                                                               | \
-|                             Nonce                             | | If encrypted
-|                                                               | /
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                           Metadata                            |
+| Mask  | ML1 | ML2 | ML3 | ML4 |                               | \
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               | |
+|                          Nonce (96 bit)                       | | If encrypted
+|                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+|                               |                               | /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+|                       Metadata (variable size)                |
 |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                               |  Padding to a multiple of 4B  |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -274,13 +401,15 @@ over:
  0                   1                   2                   3
  0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1 2 3 4 5 6 7 8 9 0 1
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|S|I|E|A|C|  0  |    Hop    | 0 | Mask  | ML1 | ML2 | ML3 | ML4 |
+|    OptType    |  OptDataLen   |S|I|E|A|C|  0  |    Hop    | 0 |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                                                               | \
-|                             Nonce                             | | If encrypted
-|                                                               | /
-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
-|                           Metadata                            |
+| Mask  | ML1 | ML2 | ML3 | ML4 |                               | \
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               | |
+|                          Nonce (96 bit)                       | | If encrypted
+|                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+ |
+|                               |                               | /
++-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+                               |
+|                       Metadata (variable size)                |
 |                               +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
 |                               |  Padding to a multiple of 4B  |
 +-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+
@@ -300,15 +429,16 @@ produced by AES-CTR. The nonce must not repeat under the same key and should be
 selected randomly for every packet.
 
 ### Telemetry Instructions
-Telemetry is requested in two different ways. Information identifying a node and
-the interfaces taken by the packet are requested using instruction flags.
-Additionally, there is an instruction flags for requesting the number of
-telemetry entries that have been aggregated into one. All other metadata is
-requested using an instruction byte in one of the four instruction slots of the
-ID-INT main header.
+Telemetry instructions are encoded using a combination of a 4-bit bitmap and
+four 8-bit integers. The 4-bit bitmap requests so called bitmap-controlled
+telemetry data. The bitmap-controlled telemetry is used to identify an ID-INT
+node and node interface in order to determine the precise source a telemetry
+response. The four 8-bit integer instruction slots request status information
+from a remote data plane, they do not use a bitmap in order to save space in the
+header.
 
-#### Metadata Instructions
-There are four slots for metadata instructions. Each slot can contain any
+#### Telemetry Instructions
+There are four slots for telemetry instructions. Each slot can contain any
 instruction. Telemetry instructions are encoded as follows:
 ```
 Bit 01234567
@@ -322,5 +452,4 @@ Bit 01234567
 - Bit 2   : Reserved, must be 0
 - Bit 3:7 : Instruction
 
-The full table of all metadata instructions is given
-[here](metadata/instructions.md).
+[Telemetry Instruction Table](metadata/instructions.md)

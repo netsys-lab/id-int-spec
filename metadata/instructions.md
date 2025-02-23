@@ -1,6 +1,6 @@
 Inst | Length | Written in | Metadatum
 ----:|-------:|-----------:|-------------------------------------
-0x00 |      2 |    ingress | Zero 2 bytes
+0x00 |      0 |    ingress | NOP
 0x01 |      2 |    ingress | ISD
 0x02 |      2 |    ingress | BR link type
 0x03 |      2 |    ingress | Device type/role
@@ -10,7 +10,6 @@ Inst | Length | Written in | Metadatum
 0x07 |      2 |    ingress | Fan speed
 0x08 |      2 |    ingress | Total power draw
 0x09 |      2 |    ingress | Energy mix
-0x40 |      4 |    ingress | Zero 4 bytes
 0x41 |      4 |    ingress | Device vendor
 0x42 |      4 |    ingress | Device model
 0x43 |      4 |    ingress | Software version
@@ -30,7 +29,6 @@ Inst | Length | Written in | Metadatum
 0x51 |      4 |     egress | Buffer ID
 0x52 |      4 |     egress | Instantaneous buffer occupancy
 0x53 |      4 |     egress | Average buffer occupancy
-0x80 |      6 |    ingress | Zero 6 bytes
 0x81 |      6 |    ingress | ASN
 0x82 |      6 |    ingress | Ingress timestamp
 0x83 |      6 |     egress | Egress timestamp
@@ -46,7 +44,5 @@ Inst | Length | Written in | Metadatum
 0x8D |      6 |     egress | Egress total pkt drop count
 0x8E |      6 |    ingress | Ingress total byte count
 0x8F |      6 |     egress | Egress total byte count
-0xC0 |      8 |    ingress | Zero 8 bytes
 0xC1 |      8 |    ingress | Node IPv6 address (hi)
 0xC2 |      8 |    ingress | Node IPv6 address (lo)
-0xFF |      0 |    ingress | NOP
