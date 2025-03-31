@@ -1,5 +1,5 @@
 .PHONY: all
-all: metadata.md instructions.md instructions.p4 instructions.go instructions.py
+all: metadata.md instructions.md instructions.p4 instructions.go instructions.hpp instructions.py
 
 metadata.md: metadata.yaml
 	./gen_md_table.py metadata.yaml --tables metadata.md
@@ -12,6 +12,9 @@ instructions.p4: metadata.yaml
 
 instructions.go: metadata.yaml
 	./gen_md_table.py metadata.yaml --go instructions.go
+
+instructions.hpp: metadata.yaml
+	./gen_md_table.py metadata.yaml --cpp instructions.hpp
 
 instructions.py: metadata.yaml
 	./gen_md_table.py metadata.yaml --py instructions.py
