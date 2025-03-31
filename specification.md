@@ -323,13 +323,9 @@ bitmap-controlled telemetry types has fixed length as indicated below.
 - Bit 4: Egress device-level interface identifier (2 bytes)
 
 ##### **ML** (Metadata Length 1-4)
-Length of metadata corresponding to instruction slot 1 to 4. A value of zero
-indicates the metadata is not present. Encoding:
-- `0xxb` = 0 bytes
-- `100b` = 2 bytes
-- `101b` = 4 bytes
-- `110b` = 6 bytes
-- `111b` = 8 bytes
+Length of metadata corresponding to instruction slot 1 to 4 in units of two
+bytes. A value of zero indicates the metadata is not present. Values grater than
+4 (corresponding to metadata longer than 8 bytes) are reserved.
 
 ##### **Reserved**
 Reserved. Must be set to zero when written and ignored when read.
